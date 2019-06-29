@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -27,43 +28,49 @@ var rootCmd = &cobra.Command{
 			fmt.Printf("stats %s (%s)\n", version, revision)
 			return nil
 		}
-
-		calculator := lib.NewCalculator()
-		scanner := bufio.NewScanner(os.Stdin)
-		for scanner.Scan() {
-			text := strings.TrimSpace(scanner.Text())
-			if text == "" {
-				fmt.Fprintln(os.Stderr, "[Warning] skip empty line")
-				continue
-			}
-			value, err := strconv.ParseFloat(text, 64)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "[Warning] failed to parse '%s'\n", text)
-				continue
-			}
-			calculator.Input(value)
-		}
-		if err := scanner.Err(); err != nil {
-			return fmt.Errorf("failed to read standard input: %s", err.Error())
-		}
-
-		result, err := calculator.GetResult()
-		if err != nil {
-			return err
-		}
-		printResult(result)
-
-		return nil
+		return Run(os.Stdin, os.Stdout, os.Stderr)
 	},
 }
 
-func printResult(result *lib.Result) {
-	fmt.Printf("count\t%d\n", result.Count)
-	fmt.Printf("mean\t%f\n", result.Mean)
-	fmt.Printf("std\t%f\n", result.Std)
-	fmt.Printf("min\t%f\n", result.Min)
-	fmt.Printf("max\t%f\n", result.Max)
-	fmt.Printf("sum\t%f\n", result.Sum)
+// Run reads numbers from stdin and output statistics.
+func Run(stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
+	calculator := lib.NewCalculator()
+	scanner := bufio.NewScanner(stdin)
+	for scanner.Scan() {
+		text := strings.TrimSpace(scanner.Text())
+		if text == "" {
+			fmt.Fprintln(stderr, "[Warning] skip empty line")
+			continue
+		}
+		value, err := strconv.ParseFloat(text, 64)
+		if err != nil {
+			fmt.Fprintf(stderr, "[Warning] failed to parse '%s'\n", text)
+			continue
+		}
+		if err := calculator.Input(value); err != nil {
+			return fmt.Errorf("failed to input value '%s'", text)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("failed to read standard input: %s", err.Error())
+	}
+
+	result, err := calculator.GetResult()
+	if err != nil {
+		return err
+	}
+	printResult(stdout, result)
+
+	return nil
+}
+
+func printResult(stdout io.Writer, result *lib.Result) {
+	fmt.Fprintf(stdout, "count\t%d\n", result.Count)
+	fmt.Fprintf(stdout, "mean\t%f\n", result.Mean)
+	fmt.Fprintf(stdout, "std\t%f\n", result.Std)
+	fmt.Fprintf(stdout, "min\t%f\n", result.Min)
+	fmt.Fprintf(stdout, "max\t%f\n", result.Max)
+	fmt.Fprintf(stdout, "sum\t%f\n", result.Sum)
 }
 
 func main() {
