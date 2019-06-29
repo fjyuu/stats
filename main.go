@@ -18,16 +18,11 @@ var (
 	revision string
 )
 
-var versionFlag bool
-
 var rootCmd = &cobra.Command{
-	Use:   "stats",
-	Short: "stats calculates statistics such as count, mean, standard deviation, min, and max.",
+	Use:     "stats",
+	Short:   "stats calculates statistics such as count, mean, standard deviation, min, and max.",
+	Version: fmt.Sprintf("%s (%s)", version, revision),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if versionFlag {
-			fmt.Printf("stats %s (%s)\n", version, revision)
-			return nil
-		}
 		return Run(os.Stdin, os.Stdout, os.Stderr)
 	},
 }
@@ -74,8 +69,6 @@ func printResult(stdout io.Writer, result *lib.Result) {
 }
 
 func main() {
-	rootCmd.Flags().BoolVarP(&versionFlag, "version", "v", false, "Show version")
-
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
