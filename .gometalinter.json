@@ -1,0 +1,7 @@
+{
+  "Linters": {
+    "goimports": {
+      "Command": "goimports -l --local $(go list)"
+    }
+  }
+}
